@@ -33,4 +33,11 @@ export default StyleSheet.create({
         height: CIRCLE_RADIUS * 2,
         borderRadius: CIRCLE_RADIUS,
     },
+    empty: {
+        backgroundColor: 'gray',
+        width: CIRCLE_RADIUS * 2,
+        height: CIRCLE_RADIUS * 2,
+        borderRadius: CIRCLE_RADIUS,
+    },
+
 });

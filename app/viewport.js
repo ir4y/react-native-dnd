@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import _ from 'lodash';
 
 import {
     View,
@@ -13,35 +14,97 @@ export default class Viewport extends Component {
         super(props);
 
         this.state = {
-            counter: 0,
+            bank: 0,
+            stack: {
+                5: 10,
+                25: 10,
+                50: 10,
+                100: 10,
+                1000: 10,
+                5000: 10,
+            },
+        };
+
+        this.doExchage.bind(this);
+    }
+
+    doExchage(volume) {
+        const toVolume = parseInt(volume);
+        return ({ volume }) => {
+            const fromVolume = parseInt(volume);
+            let state = { ...this.state };
+
+            if (toVolume === fromVolume) {
+                return;
+            }
+
+            if (toVolume < fromVolume) {
+                state.stack[fromVolume] -= 1;
+                state.stack[toVolume] += fromVolume / toVolume;
+            }
+
+            if (toVolume > fromVolume && state.stack[fromVolume] >= (toVolume / fromVolume)) {
+                state.stack[toVolume] += 1;
+                state.stack[fromVolume] -= (toVolume / fromVolume);
+            }
+
+            this.setState(state);
         };
     }
 
     render() {
         return (
             <DnD style={styles.mainContainer}>
+                <View style={styles.draggableContainer}>
+                    {_.map(this.state.stack, (count, volume) => {
+                        let inner;
+                        if (count <= 0) {
+                            inner = (
+                                <View
+                                    style={styles.empty}
+                                >
+                                    <Text style={styles.text}>
+                                        {volume}
+                                    </Text>
+                                </View>
+                            );
+                        } else {
+                            inner = (
+                                <View key={volume}>
+                                    <Draggable
+                                        disable={volume === '0'}
+                                        meta={{ volume }}
+                                        style={styles.circle}
+                                    >
+                                        <Text style={styles.text}>
+                                            { volume }x{ count }
+                                        </Text>
+                                    </Draggable>
+                                </View>
+                            );
+                        }
+                        return (
+                            <DropZone
+                                key={volume}
+                                onDrop={this.doExchage(volume)}
+                            >
+                                {inner}
+                            </DropZone>
+                        );
+                    })}
+                </View>
                 <DropZone
-                    onDrop={(meta) => this.setState({ counter: this.state.counter + meta.value })}
+                    onDrop={(meta) => {
+                        let state = { ...this.state };
+                        state.bank += parseInt(meta.volume);
+                        state.stack[meta.volume] -= 1;
+                        this.setState(state);
+                    }}
                     style={styles.dropZone}
                 >
-                    <Text style={styles.text}>Drop me here!</Text>
-                    <Text style={styles.text}>{this.state.counter}</Text>
+                    <Text style={styles.text}>Bank</Text>
+                    <Text style={styles.text}>{this.state.bank}</Text>
                 </DropZone>
-                <View style={styles.draggableContainer}>
-                    {[5, 25, 50, 100, 1000, 5000].map((value) => (
-                        <View key={value}>
-                            <Draggable
-                                meta={{ value }}
-                                style={styles.circle}
-                            >
-                                <Text style={styles.text}>
-                                    { value }
-                                </Text>
-                            </Draggable>
-                        </View>
-                   ))}
-
-                </View>
             </DnD>
         );
     }

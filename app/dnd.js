@@ -8,10 +8,15 @@ import {
 } from 'react-native';
 
 function execForMached(dropZones, gesture, fn) {
-    _.map(dropZones, ({ ref, layout }) => {
-        if (gesture.moveY > layout.y && gesture.moveY < layout.y + layout.height) {
-            fn(ref);
-        }
+    const { moveX, moveY } = gesture;
+    _.map(dropZones, (ref) => {
+        ref.view.measure((fx, fy, width, height, px, py) => {
+            const matchY = moveY > py && moveY < py + height;
+            const matchX = moveX > px && moveX < px + width;
+            if (matchX && matchY) {
+                fn(ref);
+            }
+        });
     });
 }
 
@@ -36,8 +41,8 @@ export const DnD = React.createClass({
         this.dropZones = [];
     },
 
-    registerDropZone(ref, layout) {
-        this.dropZones.push({ ref, layout });
+    registerDropZone(ref) {
+        this.dropZones.push(ref);
     },
 
     render() {
@@ -81,7 +86,7 @@ export const Draggable = React.createClass({
         return (
             <Animated.View
                 {...this.panResponder.panHandlers}
-                style={[this.state.pan.getLayout(), this.props.style]}
+                style={[this.state.pan.getLayout(), this.props.style, { zIndex: 10000 }]}
             >
                 {this.props.children}
             </Animated.View>
@@ -105,6 +110,11 @@ export const DropZone = React.createClass({
         };
     },
 
+    componentWillMount() {
+        this.context.registerDropZone(this);
+    },
+
+
     onDrop(meta) {
         this.props.onDrop(meta);
     },
@@ -113,15 +123,11 @@ export const DropZone = React.createClass({
         this.props.onOver(meta);
     },
 
-    register(event) {
-        this.context.registerDropZone(this, event.nativeEvent.layout);
-    },
-
     render() {
         const { onDrop, onOver, ...props } = this.props; // eslint-disable-line
         return (
             <View
-                onLayout={this.register}
+                ref={(ref) => { this.view = ref; }}
                 {...props}
             />
         );
